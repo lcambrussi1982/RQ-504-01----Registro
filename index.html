@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="claro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RQ-504-01 — Registro de Inspeção de Peças Acabadas por Lote Produzido</title>
+  <meta name="color-scheme" content="light only" />
+  <meta name="theme-color" content="#0E3554" />
+
+  <!-- CSS principal -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- jsPDF (para gerar PDF “texto”) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <!-- Script principal -->
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <noscript>
+    <div class="noscript">Ative o JavaScript para usar todas as funções do relatório (salvar, PDF, adicionar linhas, etc.).</div>
+  </noscript>
+
+  <a class="sr-only sr-only-focusable" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topbar" role="banner">
+    <div class="container topbar__inner">
+      <div class="brand" aria-label="Shiva Conexões">
+        <img src="shiva.png" alt="Shiva Conexões" />
+        <div class="brand-text">
+          <span class="brand-title">RQ-504-01 — Registro de Inspeção de Peças Acabadas por Lote Produzido</span>
+        </div>
+      </div>
+
+      <div class="topbar__right">
+        <nav class="actions" role="group" aria-label="Ações do relatório">
+          <div class="btn-group">
+            <button id="btnSalvar" class="btn btn--primary" type="button" title="Salvar no navegador">Salvar</button>
+          </div>
+
+          <div class="btn-group">
+            <button id="btnPDF" class="btn btn--secondary" type="button" title="Gerar PDF (texto)">PDF</button>
+            <button id="btnImprimir" class="btn btn--secondary" type="button" title="Imprimir página">Imprimir</button>
+          </div>
+
+          <div class="btn-group">
+            <button id="btnTemas" class="btn btn--secondary" type="button" title="Escolher tema">Temas</button>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout" id="app" role="main">
+    <div class="container">
+      <div id="ariaLive" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+      <aside class="lista-relatorios" aria-label="Relatórios salvos">
+        <div class="aside-head">
+          <h2>Relatórios</h2>
+          <div class="search-group">
+            <label for="filtroLista" class="sr-only">Buscar em relatórios salvos</label>
+            <input id="filtroLista" placeholder="Buscar..." type="search" autocomplete="off" />
+            <button type="button" id="btnBuscarRelatorio" class="btn btn--secondary" title="Buscar relatório">Buscar</button>
+          </div>
+          <div class="aside-buttons"></div>
+        </div>
+        <ul id="listaRelatorios" aria-live="polite"></ul>
+      </aside>
+
+      <section class="conteudo" id="conteudo" tabindex="-1">
+        <form id="formRelatorio" novalidate>
+
+          <!-- IDENTIFICAÇÃO -->
+          <fieldset>
+            <legend>Identificação do Relatório</legend>
+
+            <div class="grid">
+              <div class="field">
+                <label for="ordemProducao">Nº da Ficha de Produção</label>
+                <input
+                  type="number"
+                  required
+                  id="ordemProducao"
+                  name="ordemProducao"
+                  class="input--short"
+                  autocomplete="off"
+                  inputmode="numeric"
+                  min="0"
+                  max="999999"
+                />
+              </div>
+
+              <div class="field">
+                <label for="quantidadeaverificar">Quantidade a verificar</label>
+                <input type="number" id="quantidadeaverificar" name="quantidadeaverificar" inputmode="numeric" min="0" />
+              </div>
+
+              <div class="field">
+                <label for="quandoexecutarinspecao">Quando executar a inspeção</label>
+                <input type="text" id="quandoexecutarinspecao" name="quandoexecutarinspecao" />
+              </div>
+
+              <div class="field">
+                <label for="dataRelatorio">Data</label>
+                <input type="date" id="dataRelatorio" name="dataRelatorio" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- PRODUTOS -->
+          <fieldset>
+            <legend>Produtos Inspecionados</legend>
+            <table id="tabelaProdutos">
+              <caption class="sr-only">Lista de produtos inspecionados com lote, data e quantidade.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Descrição do produto</th>
+                  <th scope="col">Lote</th>
+                  <th scope="col">Data</th>
+                  <th scope="col">Quantidade</th>
+                  <th scope="col">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="text" name="descricao[]" placeholder="Produto" required /></td>
+                  <td><input type="text" name="lote[]" placeholder="Lote" /></td>
+                  <td><input type="date" name="data[]" /></td>
+                  <td><input type="number" name="quantidade[]" min="1" inputmode="numeric" /></td>
+                  <td><button type="button" class="remover" aria-label="Remover produto">❌</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-actions">
+              <button type="button" id="addLinha" class="btn" data-add-row="produtos">➕ Adicionar linha</button>
+            </div>
+
+            <!-- Template para novas linhas de produtos -->
+            <template id="tplProdutoRow">
+              <tr>
+                <td><input type="text" name="descricao[]" placeholder="Produto" required /></td>
+                <td><input type="text" name="lote[]" placeholder="Lote" /></td>
+                <td><input type="date" name="data[]" /></td>
+                <td><input type="number" name="quantidade[]" min="1" inputmode="numeric" /></td>
+                <td><button type="button" class="remover" aria-label="Remover produto">❌</button></td>
+              </tr>
+            </template>
+          </fieldset>
+
+          <!-- ENSAIOS -->
+          <fieldset>
+            <legend>Ensaios Realizados</legend>
+            <table id="tabelaEnsaios">
+              <caption class="sr-only">Lista de ensaios, amostras, método e resultado.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Ensaio realizado</th>
+                  <th scope="col">Amostras</th>
+                  <th scope="col">Método</th>
+                  <th scope="col">Resultado</th>
+                  <th scope="col">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <select name="ensaio[]" required>
+                      <option value="">Selecione...</option>
+                      <option value="phi">Pressão hidrostática (PHI)</option>
+                      <option value="junta">Pressão hidrostática (junta elástica)</option>
+                      <option value="vacuo">Vácuo</option>
+                      <option value="dimensional">Dimensional</option>
+                      <option value="marcacoes">Marcações</option>
+                      <option value="achatamento">Achatamento</option>
+                      <option value="calor">Comportamento ao calor</option>
+                      <option value="impacto">Resistência ao impacto</option>
+                      <option value="estanquiedade">Estanquiedade da junta com anel de vedação elastomérico</option>
+                      <option value="mecanica">Resistência mecânica ou flexibilidade</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="amostras[]" required>
+                      <option value="">Selecione...</option>
+                      <option>01</option><option>02</option><option>03</option><option>04</option>
+                      <option>05</option><option>06</option><option>07</option><option>08</option>
+                      <option>09</option><option>10</option><option>11</option><option>12</option>
+                      <option>13</option><option>14</option><option>15</option><option>20</option>
+                      <option>32</option><option>50</option><option>80</option><option>125</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="metodo[]" required>
+                      <option value="">Selecione...</option>
+                      <option value="0.5k15">0,5 Kgf/cm² × 15 min</option>
+                      <option value="2k15">2 Kgf/cm² × 15 min</option>
+                      <option value="-0.3b15">-0,3 Bar × 15 min</option>
+                      <option value="gabarito">Gabarito</option>
+                      <option value="visual">Visual</option>
+                      <option value="deflexao30">Deflexão de (X) 30%</option>
+                      <option value="150c30">150º ± 2º × 30 min</option>
+                      <option value="deflexao_ponta">Deflexão da ponta ≥10%</option>
+                      <option value="deflexao_bolsa">Deflexão da bolsa ≥5%</option>
+                      <option value="diferenca5">Diferença ≥5%</option>
+                      <option value="ang_dn_le_315">Deflexão angular (dn ≤ 315 mm) 2º</option>
+                      <option value="ang_315_lt_dn_le_630">Deflexão angular (315 mm &lt; dn ≤ 630 mm) 1,5º</option>
+                      <option value="ang_dn_gt_630">Deflexão angular (dn &gt; 630 mm) 1º</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select name="resultado[]" required>
+                      <option value="">Selecione...</option>
+                      <option value="aprovado">Aprovado</option>
+                      <option value="reprovado">Reprovado</option>
+                    </select>
+                  </td>
+                  <td><button type="button" class="remover" aria-label="Remover ensaio">❌</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-actions">
+              <button type="button" id="addEnsaio" class="btn" data-add-row="ensaios">➕ Adicionar linha</button>
+            </div>
+
+            <!-- Template para novas linhas de ensaios -->
+            <template id="tplEnsaioRow">
+              <tr>
+                <td>
+                  <select name="ensaio[]" required>
+                    <option value="">Selecione...</option>
+                    <option value="phi">Pressão hidrostática (PHI)</option>
+                    <option value="junta">Pressão hidrostática (junta elástica)</option>
+                    <option value="vacuo">Vácuo</option>
+                    <option value="dimensional">Dimensional</option>
+                    <option value="marcacoes">Marcações</option>
+                    <option value="achatamento">Achatamento</option>
+                    <option value="calor">Comportamento ao calor</option>
+                    <option value="impacto">Resistência ao impacto</option>
+                    <option value="estanquiedade">Estanquiedade da junta com anel de vedação elastomérico</option>
+                    <option value="mecanica">Resistência mecânica ou flexibilidade</option>
+                  </select>
+                </td>
+                <td>
+                  <select name="amostras[]" required>
+                    <option value="">Selecione...</option>
+                    <option>01</option><option>02</option><option>03</option><option>04</option>
+                    <option>05</option><option>06</option><option>07</option><option>08</option>
+                    <option>09</option><option>10</option><option>11</option><option>12</option>
+                    <option>13</option><option>14</option><option>15</option><option>20</option>
+                    <option>32</option><option>50</option><option>80</option><option>125</option>
+                  </select>
+                </td>
+                <td>
+                  <select name="metodo[]" required>
+                    <option value="">Selecione...</option>
+                    <option value="0.5k15">0,5 Kgf/cm² × 15 min</option>
+                    <option value="2k15">2 Kgf/cm² × 15 min</option>
+                    <option value="-0.3b15">-0,3 Bar × 15 min</option>
+                    <option value="gabarito">Gabarito</option>
+                    <option value="visual">Visual</option>
+                    <option value="deflexao30">Deflexão de (X) 30%</option>
+                    <option value="150c30">150º ± 2º × 30 min</option>
+                    <option value="deflexao_ponta">Deflexão da ponta ≥10%</option>
+                    <option value="deflexao_bolsa">Deflexão da bolsa ≥5%</option>
+                    <option value="diferenca5">Diferença ≥5%</option>
+                    <option value="ang_dn_le_315">Deflexão angular (dn ≤ 315 mm) 2º</option>
+                    <option value="ang_315_lt_dn_le_630">Deflexão angular (315 mm &lt; dn ≤ 630 mm) 1,5º</option>
+                    <option value="ang_dn_gt_630">Deflexão angular (dn &gt; 630 mm) 1º</option>
+                  </select>
+                </td>
+                <td>
+                  <select name="resultado[]" required>
+                    <option value="">Selecione...</option>
+                    <option value="aprovado">Aprovado</option>
+                    <option value="reprovado">Reprovado</option>
+                  </select>
+                </td>
+                <td><button type="button" class="remover" aria-label="Remover ensaio">❌</button></td>
+              </tr>
+            </template>
+          </fieldset>
+
+          <!-- OBSERVAÇÃO + NBR -->
+          <fieldset>
+            <legend>Observação e Normas</legend>
+
+            <!-- Caso queira observações livres, descomente:
+            <div class="grid">
+              <label for="observacao">Observação</label>
+              <textarea id="observacao" name="observacao" rows="4" placeholder="Digite observações gerais..."></textarea>
+            </div> -->
+
+            <div class="nbr-options" role="group" aria-label="Teste conforme NBR">
+              <p><strong>Observação: Teste conforme NBR:</strong></p>
+              <label><input type="checkbox" name="nbr[]" value="7362"> 7362</label>
+              <label><input type="checkbox" name="nbr[]" value="5688"> 5688</label>
+              <label><input type="checkbox" name="nbr[]" value="7665"> 7665</label>
+              <label><input type="checkbox" name="nbr[]" value="5647"> 5647</label>
+              <label><input type="checkbox" name="nbr[]" value="5648"> 5648</label>
+              <label><input type="checkbox" name="nbr[]" value="na"> N/A — Não aplicável</label>
+            </div>
+          </fieldset>
+
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <footer class="rodape" role="contentinfo">
+    <div class="container">
+      <small>© <span id="ano"></span> Shiva Conexões — Relatórios digitais.</small>
+    </div>
+  </footer>
+</body>
+</html>
